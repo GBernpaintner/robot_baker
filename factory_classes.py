@@ -62,35 +62,38 @@ class InsideCirclePredicate:
         return circle_predicate_gradient
 
 
-class InsideSquarePredicate:
-    """A factory class for 'inside square' predicate functions."""
+class InsideRectanglePredicate:
+    """A factory class for 'inside rectangle' predicate functions."""
 
-    def __init__(self, left, right, bottom, top):
-        """The variables left, right, bottom and top are the coordinates of the square's sides."""
-        self.left = left
-        self.right = right
-        self.bottom = bottom
-        self.top = top
+    def __init__(self, center, width, height):
+        """The variable center are the coordinates (x, y) of the rectangle's center."""
+        self.center = center
+        self.width = width
+        self.height = height
 
     def get_predicates(self):
-        """Returns the four 'inside square' predicate functions corresponding to the four edges of the square.
+        """Returns the four 'inside rectangle' predicate functions corresponding to the four edges of the rectangle.
 
-        The four 'inside square' predicate functions are returned in a dictionary
+        The four 'inside rectangle' predicate functions are returned in a dictionary
         with 'left', 'right', 'bottom' and 'top' as the keys.
 
-        The input to the predicate functions is the state variable x of the shape [position_x, position_y]."""
+        The input to the predicate functions is the state variable x in the shape [position_x, position_y]."""
 
         def square_left_predicate(x):
-            return x[0] - self.left
+            left = self.center[0] - self.width / 2
+            return x[0] - left
 
         def square_right_predicate(x):
-            return self.right - x[0]
+            right = self.center[0] + self.width / 2
+            return right - x[0]
 
         def square_bottom_predicate(x):
-            return x[1] - self.bottom
+            bottom = self.center[1] - self.height
+            return x[1] - bottom
 
         def square_top_predicate(x):
-            return self.top - x[1]
+            top = self.center[1] + self.height
+            return top - x[1]
 
         return {
             'left': square_left_predicate,
@@ -100,7 +103,7 @@ class InsideSquarePredicate:
         }
 
     def get_gradients(self):
-        """Returns the four 'inside square' predicate functions' gradients.
+        """Returns the four 'inside rectangle' predicate functions' gradients.
 
         The four gradients are returned in a dictionary with 'left', 'right', 'bottom' and 'top' as the keys.
 
