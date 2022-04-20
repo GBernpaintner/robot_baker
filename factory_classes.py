@@ -5,6 +5,10 @@ class LinearGamma:
     """A factory class for linear gamma functions."""
 
     def __init__(self, gamma_0, gamma_inf, t_end):
+        """The variable t_end changes depending on the type of task:
+        t_end = b for eventually
+        t_end = a for globally."""
+
         self.gamma_0 = gamma_0
         self.gamma_inf = gamma_inf
         self.t_end = t_end
@@ -32,6 +36,9 @@ class LinearGamma:
         return gamma_gradient
 
 
+# TODO ensure the predicate gradients never divide by 0
+
+
 class InsideCirclePredicate:
     """A factory class for 'inside circle' predicate functions."""
 
@@ -39,27 +46,27 @@ class InsideCirclePredicate:
         self.center = center
         self.radius = radius
 
-    def get_predicate(self):
-        """Returns the 'inside circle' predicate function circle_predicate(x).
+    def get_predicates(self):
+        """Returns the 'inside circle' predicate function circle_predicate(x) in a list.
 
         The input to the predicate function is the state variable x of the shape [position_x, position_y]."""
 
         def circle_predicate(x):
             return self.radius - np.linalg.norm(self.center - x)
 
-        return circle_predicate
+        return [circle_predicate]
 
-    def get_gradient(self):
-        """Returns the gradient of the predicate function circle_predicate_gradient(x).
+    def get_gradients(self):
+        """Returns the gradient of the predicate function circle_predicate_gradient(x) in a list.
 
         The gradient takes the state x as input and expects it to be a column vector."""
 
         def circle_predicate_gradient(x):
-            gradient_x = x[0] - self.center[0] / np.linalg.norm(self.center - x)
-            gradient_y = x[1] - self.center[1] / np.linalg.norm(self.center - x)
+            gradient_x = x[0, 0] - self.center[0] / (np.linalg.norm(np.array([self.center]).T - x) + 0.00001)
+            gradient_y = x[1, 0] - self.center[1] / (np.linalg.norm(np.array([self.center]).T - x) + 0.00001)
             return np.array([[gradient_x, gradient_y]]).T
 
-        return circle_predicate_gradient
+        return [circle_predicate_gradient]
 
 
 class InsideRectanglePredicate:
@@ -72,60 +79,38 @@ class InsideRectanglePredicate:
         self.height = height
 
     def get_predicates(self):
-        """Returns the four 'inside rectangle' predicate functions corresponding to the four edges of the rectangle.
+        """Returns the two 'inside rectangle' predicate functions corresponding to the x- and y-bounds.
 
-        The four 'inside rectangle' predicate functions are returned in a dictionary
-        with 'left', 'right', 'bottom' and 'top' as the keys.
+        The two 'inside rectangle' predicate functions are returned in a list like so: [x_gradient, y_gradient].
 
         The input to the predicate functions is the state variable x in the shape [position_x, position_y]."""
 
-        def square_left_predicate(x):
-            left = self.center[0] - self.width / 2
-            return x[0] - left
+        def x_predicate(x):
+            return self.width / 2 - abs(x[0] - self.center[0])
 
-        def square_right_predicate(x):
-            right = self.center[0] + self.width / 2
-            return right - x[0]
+        def y_predicate(x):
+            return self.height / 2 - abs(x[1] - self.center[1])
 
-        def square_bottom_predicate(x):
-            bottom = self.center[1] - self.height
-            return x[1] - bottom
-
-        def square_top_predicate(x):
-            top = self.center[1] + self.height
-            return top - x[1]
-
-        return {
-            'left': square_left_predicate,
-            'right': square_right_predicate,
-            'bottom': square_bottom_predicate,
-            'top': square_top_predicate
-        }
+        return [x_predicate, y_predicate]
 
     def get_gradients(self):
-        """Returns the four 'inside rectangle' predicate functions' gradients.
+        """Returns the two 'inside rectangle' predicate functions' gradients.
 
-        The four gradients are returned in a dictionary with 'left', 'right', 'bottom' and 'top' as the keys.
+        The two gradients are returned in a list like so: [x_gradient, y_gradient].
 
-        The input to the gradients is the state variable x of the shape [position_x, position_y].
+        The input to the gradients is the state variable x,
+        a numpy.ndarray, of the shape [[position_x, position_y]].T.
 
         The output is a numpy column vector (numpy.ndarray) with two rows."""
 
-        def square_left_predicate_gradient(x):
-            return np.array([[1, 0]]).T
+        def x_predicate_gradient(x):
+            x_gradient = -(x[0, 0] - self.center[0]) / (abs(x[0, 0] - self.center[0]) + 0.00001)
+            y_gradient = 0
+            return np.array([[x_gradient, y_gradient]]).T
 
-        def square_right_predicate_gradient(x):
-            return np.array([[-1, 0]]).T
+        def y_predicate_gradient(x):
+            x_gradient = 0
+            y_gradient = -(x[1, 0] - self.center[1]) / (abs(x[1, 0] - self.center[1]) + 0.00001)
+            return np.array([[x_gradient, y_gradient]]).T
 
-        def square_bottom_predicate_gradient(x):
-            return np.array([[0, 1]]).T
-
-        def square_top_predicate_gradient(x):
-            return np.array([[0, -1]]).T
-
-        return {
-            'left': square_left_predicate_gradient,
-            'right': square_right_predicate_gradient,
-            'bottom': square_bottom_predicate_gradient,
-            'top': square_top_predicate_gradient
-        }
+        return [x_predicate_gradient, y_predicate_gradient]
