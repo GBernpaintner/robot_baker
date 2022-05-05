@@ -224,12 +224,10 @@ class ControlBarrierFunction:
             return CBF
 
 
-def calculate_control_input(x, t, cbf):
+def calculate_control_input(x, t, alpha, cbf):
 
     def objective_function(u):
         return u[0]**2 + u[1]**2
-
-    alpha = 1
 
     b = alpha * cbf(x, t) + cbf.gradient_t(x, t)
 
@@ -269,7 +267,7 @@ def plot_path(states, areas):
     plot_areas(areas)
     plt.axis('square')
     # TODO: don't hardcode these values
-    plt.axis([-20, 20, -20, 20])
+    plt.axis([-2, 2, -2, 2])
 
     '''for i in range(len(states)):
         states_per_cycle = 15
@@ -317,34 +315,51 @@ def main():
     print(f'       circ({state.T}.T, {t}) =', circ(state, t), f'active: {circ.is_active(state, t)}')'''
 
     areas = [
-        Rectangle((0, 0), 40, 40),   #  0 - Work Area
-        Circle((-17.5, 17.5), 2.5),  #  1 - Butter
-        Circle((-12.5, 17.5), 2.5),  #  2 - Sugar
-        Circle((-7.5, 17.5), 2.5),   #  3 - Eggs
-        Circle((-2.5, 17.5), 2.5),   #  4 - Flour
-        Circle((2.5, 17.5), 2.5),    #  5 - Baking Powder
-        Circle((7.5, 17.5), 2.5),    #  6 - Chocolate
-        Circle((-17, 3), 3),         #  7 - Water
-        Circle((-17, 3), 3),         #  8 - Milk
-        Circle((-12, -16), 4),       #  9 - Blenders
-        Circle((16, 16), 4),         # 10 - Ovens
-        Circle((17, -17), 3),        # 11 - Delivery Point
-        Circle((0, -17), 3),         # 12 - Starting/Ending Point
+        Rectangle((0, 0), 4, 4),   #  0 - Work Area
+        Circle((-1.75, 1.75), .25),  #  1 - Butter
+        # Circle((-1.25, 1.75), .25),  #  2 - Sugar
+        # Circle((-.75, 1.75), .25),   #  3 - Eggs
+        # Circle((-.25, 1.75), .25),   #  4 - Flour
+        # Circle((.25, 1.75), .25),    #  5 - Baking Powder
+        # Circle((.75, 1.75), .25),    #  6 - Chocolate
+        # Circle((-1.7, .3), .3),      #  7 - Water
+        # Circle((-1.7, .3), .3),      #  8 - Milk
+        Circle((-1.2, -1.6), .4),    #  9 - Blenders
+        # Circle((1.6, 1.6), .4),      # 10 - Ovens
+        # Circle((1.7, -1.7), .3),     # 11 - Delivery Point
+        # Circle((0, -1.7), .3),       # 12 - Starting/Ending Point
     ]
 
-    gamma0 = GammaFunction('globally', (5, 8), -600, 0.1)
+    alpha = 0.07
+    time_delta = 0.01
+
+    bounds_gamma = GammaFunction('eventually', (0, t_end), 0, 0.01)
+    bounds_top_predicate = InsideRectanglePredicateFunction(areas[0], 'top')
+    bounds_left_predicate = InsideRectanglePredicateFunction(areas[0], 'left')
+    bounds_bottom_predicate = InsideRectanglePredicateFunction(areas[0], 'bottom')
+    bounds_right_predicate = InsideRectanglePredicateFunction(areas[0], 'right')
+    bounds_top = CandidateControlBarrierFunction(bounds_top_predicate, bounds_gamma, always_active=True)
+    bounds_left = CandidateControlBarrierFunction(bounds_left_predicate, bounds_gamma, always_active=True)
+    bounds_bottom = CandidateControlBarrierFunction(bounds_bottom_predicate, bounds_gamma, always_active=True)
+    bounds_right = CandidateControlBarrierFunction(bounds_right_predicate, bounds_gamma, always_active=True)
+
+    connect_candidate_cbfs(bounds_top, bounds_left, bounds_bottom, bounds_right)
+
+    bounds_candidate = bounds_top & bounds_left & bounds_bottom & bounds_right
+
+    gamma0 = GammaFunction('eventually', (5, 8), -100, 0.01)
     predicate0 = InsideCirclePredicateFunction(areas[1])
     candidate0 = CandidateControlBarrierFunction(predicate0, gamma0)
 
-    gamma1 = GammaFunction('globally', (13, 16), -4500, 0.1)
-    predicate1 = InsideCirclePredicateFunction(areas[9])
-    candidate1 = CandidateControlBarrierFunction(predicate1, gamma1, always_active=True)
+    gamma1 = GammaFunction('eventually', (13, 16), -200, 0.01)
+    predicate1 = InsideCirclePredicateFunction(areas[2])
+    candidate1 = CandidateControlBarrierFunction(predicate1, gamma1)
 
     # gamma2 = GammaFunction('eventually', (16, 20), -400, 0.1)
     # predicate2 = InsideCirclePredicateFunction(areas[11])
     # candidate2 = CandidateControlBarrierFunction(predicate2, gamma2, always_active=True)
 
-    cbf = candidate0 & candidate1  # & candidate2
+    cbf = bounds_candidate & candidate0 #& candidate1  # & candidate2
 
     '''# TODO: make sure eventually tasks are deactivated as soon as they are completed
     tasks = [
@@ -370,10 +385,10 @@ def main():
     # Define values for γ functions;
     # Define constants for collision avoidance;
     t = 0
-    time_delta = 0.05
     saved_cbfs = np.array([])
     while t < t_end:
-        control_input = calculate_control_input(state, t, cbf)
+        control_input = calculate_control_input(state, t, alpha, cbf)
+        print(control_input, t)
         state = state + time_delta * control_input
         saved_states = np.append(saved_states, state.T, 0)
         saved_cbfs = np.append(saved_cbfs, cbf(state, t))
