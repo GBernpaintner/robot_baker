@@ -18,9 +18,10 @@ class InsideTask:
         self.barriers = self.generate_barriers()
         self.barrier_dbdxs = self.predicate_factory.get_gradients()
         self.barrier_dbdt = gamma.get_gradient()
+        self.is_final = False
 
     def deactivation_policy(self, t):
-        return 1 if t <= self.gamma.t_end else 0
+        return 1 if (t <= self.gamma.t_star or self.is_final) else 0
 
     def generate_barriers(self):
         """Generates the barrier functions corresponding to the task."""
@@ -28,6 +29,7 @@ class InsideTask:
         for predicate in self.predicate_factory.get_predicates():
             def make_barrier(predicate):
                 def barrier(x, t):
+                    print(predicate(x))
                     return -self.gamma.get_function()(t) + predicate(x)
                 return barrier
             barriers.append(make_barrier(predicate))
@@ -37,6 +39,7 @@ class InsideTask:
 class TotalBarrier:
     def __init__(self, tasks):
         self.tasks = tasks
+        tasks[-1].is_final = True
 
     def evaluate(self, x, t):
         total_barrier_sum = 0

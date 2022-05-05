@@ -4,21 +4,27 @@ import numpy as np
 class LinearGamma:
     """A factory class for linear gamma functions."""
 
-    def __init__(self, gamma_0, gamma_inf, t_end):
+    def __init__(self, gamma_0, gamma_inf, task_type, ab):
         """The variable t_end changes depending on the type of task:
         t_end = b for eventually
         t_end = a for globally."""
 
+        a, b = ab
+        if task_type == 'eventually':
+            self.t_star = b
+        elif task_type == 'globally':
+            self.t_star = a
+        else:
+            raise ValueError('task_type must be "eventually" or "globally"')
         self.gamma_0 = gamma_0
         self.gamma_inf = gamma_inf
-        self.t_end = t_end
 
     def get_function(self):
         """Returns the linear gamma function gamma(t)."""
 
         def gamma(t):
-            if t < self.t_end:
-                return (self.gamma_inf - self.gamma_0) / self.t_end * t + self.gamma_0
+            if t < self.t_star:
+                return ((self.gamma_inf - self.gamma_0) / self.t_star) * t + self.gamma_0
             else:
                 return self.gamma_inf
 
@@ -28,8 +34,8 @@ class LinearGamma:
         """Returns the gradient of the gamma function gamma_gradient(t)."""
 
         def gamma_gradient(t):
-            if t < self.t_end:
-                return (self.gamma_inf - self.gamma_0) / self.t_end
+            if t < self.t_star:
+                return (self.gamma_inf - self.gamma_0) / self.t_star
             else:
                 return 0
 
@@ -52,7 +58,7 @@ class InsideCirclePredicate:
         The input to the predicate function is the state variable x of the shape [position_x, position_y]."""
 
         def circle_predicate(x):
-            return self.radius - np.linalg.norm(self.center - x)
+            return self.radius**2 - np.linalg.norm(self.center - x)**2  # added squares
 
         return [circle_predicate]
 
@@ -62,8 +68,8 @@ class InsideCirclePredicate:
         The gradient takes the state x as input and expects it to be a column vector."""
 
         def circle_predicate_gradient(x):
-            gradient_x = x[0, 0] - self.center[0] / (np.linalg.norm(np.array([self.center]).T - x) + 0.00001)
-            gradient_y = x[1, 0] - self.center[1] / (np.linalg.norm(np.array([self.center]).T - x) + 0.00001)
+            gradient_x = 2 * (self.center[0] - x[0, 0])  # -(x[0, 0] - self.center[0]) / (np.linalg.norm(np.array([self.center]).T - x) + 0.00001)
+            gradient_y = 2 * (self.center[1] - x[1, 0])  # -(x[1, 0] - self.center[1]) / (np.linalg.norm(np.array([self.center]).T - x) + 0.00001)
             return np.array([[gradient_x, gradient_y]]).T
 
         return [circle_predicate_gradient]
