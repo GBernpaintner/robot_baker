@@ -13,11 +13,11 @@ class InsideCirclePredicateFunction:
     def __call__(self, x):
         # v = center - x
         v = np.array([self.circle.center]).T - x
-        return self.circle.radius**2 - v[0, 0]**2 - v[1, 0]**2
+        return self.circle.radius - np.linalg.norm(v)
 
     def gradient(self, x):
-        gradient_x = 2 * (self.circle.center[0] - x[0, 0])
-        gradient_y = 2 * (self.circle.center[1] - x[1, 0])
+        gradient_x = -(x[0, 0] - self.circle.center[0]) / (np.linalg.norm(np.array([self.circle.center]).T - x) + 0.00001)
+        gradient_y = -(x[1, 0] - self.circle.center[1]) / (np.linalg.norm(np.array([self.circle.center]).T - x) + 0.00001)
         return np.array([[gradient_x, gradient_y]]).T
 
 
@@ -274,7 +274,7 @@ def plot_path(states, areas):
         states_per_cycle = 15
         if i % states_per_cycle == 0 or i+1 == len(states):
             plt.scatter(states[:i+1, 0], states[:i+1, 1], c=range(i+1), cmap=plt.cm.get_cmap('winter'))
-            plt.pause(0.2 * states_per_cycle)'''
+            plt.pause(0.01 * states_per_cycle)'''
 
     plt.scatter(states[:, 0], states[:, 1], c=range(len(states)), cmap=plt.cm.get_cmap('winter'))
 
@@ -287,7 +287,7 @@ def plot_cbf(t_end, time_delta, saved_cbfs):
 def main():
     state = np.array([[0, 0]]).T
     saved_states = state.T
-    t_end = 20
+    t_end = 125
 
     '''rectangle = Rectangle((2, 2), 2, 2)
     circle = Circle((0, 0), 1)
@@ -318,21 +318,21 @@ def main():
     areas = [
         Rectangle((0, 0), 40, 40),   #  0 - Work Area
         Circle((-17.5, 17.5), 2.5),  #  1 - Butter
-        # Circle((-12.5, 17.5), 2.5),  #  2 - Sugar
-        # Circle((-7.5, 17.5), 2.5),   #  3 - Eggs
-        # Circle((-2.5, 17.5), 2.5),   #  4 - Flour
-        # Circle((2.5, 17.5), 2.5),    #  5 - Baking Powder
-        # Circle((7.5, 17.5), 2.5),    #  6 - Chocolate
-        # Circle((-17, 3), 3),      #  7 - Water
-        # Circle((-17, 3), 3),      #  8 - Milk
+        Circle((-12.5, 17.5), 2.5),  #  2 - Sugar
+        Circle((-7.5, 17.5), 2.5),   #  3 - Eggs
+        Circle((-2.5, 17.5), 2.5),   #  4 - Flour
+        Circle((2.5, 17.5), 2.5),    #  5 - Baking Powder
+        Circle((7.5, 17.5), 2.5),    #  6 - Chocolate
+        Circle((-17, 3), 3),      #  7 - Water
+        Circle((-17, 3), 3),      #  8 - Milk
         Circle((-12, -16), 4),    #  9 - Blenders
-        # Circle((16, 16), 4),      # 10 - Ovens
+        Circle((16, 16), 4),      # 10 - Ovens
         Circle((17, -17), 3),     # 11 - Delivery Point
-        # Circle((0, -17), 3),       # 12 - Starting/Ending Point
+        Circle((0, -17), 3),       # 12 - Starting/Ending Point
     ]
 
-    alpha = 0.01
-    time_delta = 0.01
+    alpha = 1
+    time_delta = 0.2
 
     bounds_gamma = GammaFunction('globally', (0, t_end), 0, 0.1)
     bounds_top_predicate = InsideRectanglePredicateFunction(areas[0], 'top')
@@ -348,19 +348,104 @@ def main():
 
     bounds_candidate = bounds_top & bounds_left & bounds_bottom & bounds_right
 
-    gamma0 = GammaFunction('globally', (4, 6), -610, 0.1)
-    predicate0 = InsideCirclePredicateFunction(areas[1])
-    candidate0 = CandidateControlBarrierFunction(predicate0, gamma0)
+    w_gamma = GammaFunction('globally', (4, 6), -20, 0.1)
+    w_top_predicate = InsideRectanglePredicateFunction(areas[1], 'top')
+    w_left_predicate = InsideRectanglePredicateFunction(areas[1], 'left')
+    w_bottom_predicate = InsideRectanglePredicateFunction(areas[1], 'bottom')
+    w_right_predicate = InsideRectanglePredicateFunction(areas[1], 'right')
+    w_top = CandidateControlBarrierFunction(w_top_predicate, w_gamma)
+    w_left = CandidateControlBarrierFunction(w_left_predicate, w_gamma)
+    w_bottom = CandidateControlBarrierFunction(w_bottom_predicate, w_gamma)
+    w_right = CandidateControlBarrierFunction(w_right_predicate, w_gamma)
 
-    gamma1 = GammaFunction('globally', (12, 14), -2100, 0.1)
-    predicate1 = InsideCirclePredicateFunction(areas[2])
+    connect_candidate_cbfs(w_top, w_left, w_bottom, w_right)
+
+    w_candidate = w_top & w_left & w_bottom & w_right
+
+    e_gamma = GammaFunction('globally', (12, 14), -100, 0.1)
+    e_top_predicate = InsideRectanglePredicateFunction(areas[9], 'top')
+    e_left_predicate = InsideRectanglePredicateFunction(areas[9], 'left')
+    e_bottom_predicate = InsideRectanglePredicateFunction(areas[9], 'bottom')
+    e_right_predicate = InsideRectanglePredicateFunction(areas[9], 'right')
+    e_top = CandidateControlBarrierFunction(e_top_predicate, e_gamma)
+    e_left = CandidateControlBarrierFunction(e_left_predicate, e_gamma)
+    e_bottom = CandidateControlBarrierFunction(e_bottom_predicate, e_gamma)
+    e_right = CandidateControlBarrierFunction(e_right_predicate, e_gamma)
+
+    connect_candidate_cbfs(e_top, e_left, e_bottom, e_right)
+
+    e_candidate = e_top & e_left & e_bottom & e_right
+
+    def get_candidate(gamma_type, gamma_range, gamma_0, gamma_inf, area):
+        if isinstance(area, Rectangle):
+            e_gamma = GammaFunction('globally', (12, 14), -100, 0.1)
+            e_top_predicate = InsideRectanglePredicateFunction(areas[9], 'top')
+            e_left_predicate = InsideRectanglePredicateFunction(areas[9], 'left')
+            e_bottom_predicate = InsideRectanglePredicateFunction(areas[9], 'bottom')
+            e_right_predicate = InsideRectanglePredicateFunction(areas[9], 'right')
+            e_top = CandidateControlBarrierFunction(e_top_predicate, e_gamma)
+            e_left = CandidateControlBarrierFunction(e_left_predicate, e_gamma)
+            e_bottom = CandidateControlBarrierFunction(e_bottom_predicate, e_gamma)
+            e_right = CandidateControlBarrierFunction(e_right_predicate, e_gamma)
+            connect_candidate_cbfs(e_top, e_left, e_bottom, e_right)
+            return e_top & e_left & e_bottom & e_right
+
+
+
+    gamma1 = GammaFunction('globally', (5, 10), -35, 0.1)
+    predicate1 = InsideCirclePredicateFunction(areas[1])
     candidate1 = CandidateControlBarrierFunction(predicate1, gamma1)
 
-    gamma2 = GammaFunction('eventually', (14, 20), -4000, 0.1)
-    predicate2 = InsideCirclePredicateFunction(areas[3])
+    gamma2 = GammaFunction('globally', (15, 20), -105, 0.1)
+    predicate2 = InsideCirclePredicateFunction(areas[9])
     candidate2 = CandidateControlBarrierFunction(predicate2, gamma2)
 
-    cbf = candidate0 & candidate1 & candidate2 & bounds_candidate
+    gamma3 = GammaFunction('globally', (25, 30), -175, 0.1)
+    predicate3 = InsideCirclePredicateFunction(areas[3])
+    candidate3 = CandidateControlBarrierFunction(predicate3, gamma3)
+
+    gamma4 = GammaFunction('globally', (35, 40), -245, 0.1)
+    predicate4 = InsideCirclePredicateFunction(areas[9])
+    candidate4 = CandidateControlBarrierFunction(predicate4, gamma4)
+
+    gamma5 = GammaFunction('globally', (45, 50), -315, 0.1)
+    predicate5 = InsideCirclePredicateFunction(areas[2])
+    candidate5 = CandidateControlBarrierFunction(predicate5, gamma5)
+
+    gamma6 = GammaFunction('globally', (55, 60), -385, 0.1)
+    predicate6 = InsideCirclePredicateFunction(areas[9])
+    candidate6 = CandidateControlBarrierFunction(predicate6, gamma6)
+
+    gamma7 = GammaFunction('globally', (65, 70), -455, 0.1)
+    predicate7 = InsideCirclePredicateFunction(areas[6])
+    candidate7 = CandidateControlBarrierFunction(predicate7, gamma7)
+
+    gamma8 = GammaFunction('globally', (75, 80), -525, 0.1)
+    predicate8 = InsideCirclePredicateFunction(areas[9])
+    candidate8 = CandidateControlBarrierFunction(predicate8, gamma8)
+
+    gamma9 = GammaFunction('globally', (85, 90), -595, 0.1)
+    predicate9 = InsideCirclePredicateFunction(areas[4])
+    candidate9 = CandidateControlBarrierFunction(predicate9, gamma9)
+
+    gamma10 = GammaFunction('globally', (95, 100), -665, 0.1)
+    predicate10 = InsideCirclePredicateFunction(areas[9])
+    candidate10 = CandidateControlBarrierFunction(predicate10, gamma10)
+
+    gamma11 = GammaFunction('globally', (105, 110), -755, 0.1)
+    predicate11 = InsideCirclePredicateFunction(areas[10])
+    candidate11 = CandidateControlBarrierFunction(predicate11, gamma11)
+
+    gamma12 = GammaFunction('globally', (115, 120), -805, 0.1)
+    predicate12 = InsideCirclePredicateFunction(areas[11])
+    candidate12 = CandidateControlBarrierFunction(predicate12, gamma12)
+
+    gamma13 = GammaFunction('eventually', (120, t_end), -875, 0.1)
+    predicate13 = InsideCirclePredicateFunction(areas[12])
+    candidate13 = CandidateControlBarrierFunction(predicate13, gamma13)
+
+    cbf = bounds_candidate & candidate1 & candidate2 & candidate3 & candidate4 & candidate5 & candidate6 & candidate7 & candidate8 & candidate9 & candidate10 & candidate11 & candidate12 & candidate13
+
 
 
     '''# TODO: make sure eventually tasks are deactivated as soon as they are completed
