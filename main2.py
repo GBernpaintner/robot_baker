@@ -225,6 +225,24 @@ class ControlBarrierFunction:
             return CBF
 
 
+def create_candidate(gamma_type, gamma_range, gamma_0, gamma_inf, area):
+    gamma = GammaFunction(gamma_type, gamma_range, gamma_0, gamma_inf)
+    if isinstance(area, Rectangle):
+        top_predicate = InsideRectanglePredicateFunction(area, 'top')
+        left_predicate = InsideRectanglePredicateFunction(area, 'left')
+        bottom_predicate = InsideRectanglePredicateFunction(area, 'bottom')
+        right_predicate = InsideRectanglePredicateFunction(area, 'right')
+        top = CandidateControlBarrierFunction(top_predicate, gamma)
+        left = CandidateControlBarrierFunction(left_predicate, gamma)
+        bottom = CandidateControlBarrierFunction(bottom_predicate, gamma)
+        right = CandidateControlBarrierFunction(right_predicate, gamma)
+        connect_candidate_cbfs(top, left, bottom, right)
+        return top & left & bottom & right
+    elif isinstance(area, Circle):
+        predicate = InsideCirclePredicateFunction(area)
+        return CandidateControlBarrierFunction(predicate, gamma)
+
+
 def calculate_control_input(x, t, alpha, cbf):
 
     def objective_function(u):
@@ -317,7 +335,7 @@ def main():
 
     areas = [
         Rectangle((0, 0), 40, 40),   #  0 - Work Area
-        Circle((-17.5, 17.5), 2.5),  #  1 - Butter
+        Rectangle((-17.5, 17.5), 5, 5),  #  1 - Butter
         Circle((-12.5, 17.5), 2.5),  #  2 - Sugar
         Circle((-7.5, 17.5), 2.5),   #  3 - Eggs
         Circle((-2.5, 17.5), 2.5),   #  4 - Flour
@@ -376,25 +394,11 @@ def main():
 
     e_candidate = e_top & e_left & e_bottom & e_right
 
-    def get_candidate(gamma_type, gamma_range, gamma_0, gamma_inf, area):
-        if isinstance(area, Rectangle):
-            e_gamma = GammaFunction('globally', (12, 14), -100, 0.1)
-            e_top_predicate = InsideRectanglePredicateFunction(areas[9], 'top')
-            e_left_predicate = InsideRectanglePredicateFunction(areas[9], 'left')
-            e_bottom_predicate = InsideRectanglePredicateFunction(areas[9], 'bottom')
-            e_right_predicate = InsideRectanglePredicateFunction(areas[9], 'right')
-            e_top = CandidateControlBarrierFunction(e_top_predicate, e_gamma)
-            e_left = CandidateControlBarrierFunction(e_left_predicate, e_gamma)
-            e_bottom = CandidateControlBarrierFunction(e_bottom_predicate, e_gamma)
-            e_right = CandidateControlBarrierFunction(e_right_predicate, e_gamma)
-            connect_candidate_cbfs(e_top, e_left, e_bottom, e_right)
-            return e_top & e_left & e_bottom & e_right
 
-
-
-    gamma1 = GammaFunction('globally', (5, 10), -35, 0.1)
-    predicate1 = InsideCirclePredicateFunction(areas[1])
-    candidate1 = CandidateControlBarrierFunction(predicate1, gamma1)
+    # gamma1 = GammaFunction('globally', (5, 10), -35, 0.1)
+    # predicate1 = InsideCirclePredicateFunction(areas[1])
+    # candidate1 = CandidateControlBarrierFunction(predicate1, gamma1)
+    candidate1 = create_candidate('globally', (5, 10), -35, 0.1, areas[1])
 
     gamma2 = GammaFunction('globally', (15, 20), -105, 0.1)
     predicate2 = InsideCirclePredicateFunction(areas[9])
