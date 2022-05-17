@@ -290,13 +290,22 @@ def plot_path(states, areas):
     plt.xlabel('position x')
     plt.ylabel('position y')
 
-    '''for i in range(len(states)):
-        states_per_cycle = 15
+    # this shows the path as an animation (although it is quite slow)
+    for i in range(len(states)):
+        states_per_cycle = 1
         if i % states_per_cycle == 0 or i+1 == len(states):
-            plt.scatter(states[:i+1, 0], states[:i+1, 1], c=range(i+1), cmap=plt.cm.get_cmap('winter'))
-            plt.pause(0.01 * states_per_cycle)'''
+            plt.gcf().clear()
+            plot_areas(areas)
+            plt.axis('square')
+            # TODO: don't hardcode these values
+            plt.axis([-20, 20, -20, 20])
+            plt.xlabel('position x')
+            plt.ylabel('position y')
+            plt.scatter(states[i+1, 0], states[i+1, 1])
+            plt.pause(0.01 * states_per_cycle)
 
-    plt.scatter(states[:, 0], states[:, 1], c=range(len(states)), cmap=plt.cm.get_cmap('winter'))
+    # this plots the complete path:
+    # plt.scatter(states[:, 0], states[:, 1], c=range(len(states)), cmap=plt.cm.get_cmap('winter'))
 
 
 def plot_cbf(t_end, time_delta, saved_cbfs):
@@ -346,26 +355,27 @@ def main():
     alpha = 1
     time_delta = 0.2
 
+    '''
     # for rectangular areas
     areas = rectangular_areas
 
     bounds_candidate = create_candidate('globally', (0, t_end), 0, 0.1, areas[0], always_active=True)
-    candidate1 = create_candidate('globally', (5, 10), -35, 0.1, areas[1])
-    candidate2 = create_candidate('globally', (15, 20), -105, 0.1, areas[9])
-    candidate3 = create_candidate('globally', (25, 30), -175, 0.1, areas[3])
-    candidate4 = create_candidate('globally', (35, 40), -245, 0.1, areas[9])
-    candidate5 = create_candidate('globally', (45, 50), -315, 0.1, areas[2])
-    candidate6 = create_candidate('globally', (55, 60), -385, 0.1, areas[9])
-    candidate7 = create_candidate('globally', (65, 70), -455, 0.1, areas[6])
-    candidate8 = create_candidate('globally', (75, 80), -525, 0.1, areas[9])
-    candidate9 = create_candidate('globally', (85, 90), -595, 0.1, areas[4])
-    candidate10 = create_candidate('globally', (95, 100), -665, 0.1, areas[9])
-    candidate11 = create_candidate('globally', (105, 110), -755, 0.1, areas[10])
-    candidate12 = create_candidate('globally', (115, 120), -805, 0.1, areas[11])
+    candidate1 = create_candidate('globally', (5, 10), -25, 0.1, areas[1])
+    candidate2 = create_candidate('globally', (15, 20), -65, 0.1, areas[9])
+    candidate3 = create_candidate('globally', (25, 30), -200, 0.1, areas[3])
+    candidate4 = create_candidate('globally', (35, 40), -280, 0.1, areas[9])
+    candidate5 = create_candidate('globally', (45, 50), -360, 0.1, areas[2])
+    candidate6 = create_candidate('globally', (55, 60), -440, 0.1, areas[9])
+    candidate7 = create_candidate('globally', (65, 70), -390, 0.1, areas[6])
+    candidate8 = create_candidate('globally', (75, 80), -450, 0.1, areas[9])
+    candidate9 = create_candidate('globally', (85, 90), -510, 0.1, areas[4])
+    candidate10 = create_candidate('globally', (95, 100), -570, 0.1, areas[9])
+    candidate11 = create_candidate('globally', (105, 110), -630, 0.1, areas[10])
+    candidate12 = create_candidate('globally', (115, 120), -690, 0.1, areas[11])
     candidate13 = create_candidate('eventually', (120, t_end), -875, 0.1, areas[12])
     cbf = bounds_candidate & candidate1 & candidate2 & candidate3 & candidate4 & candidate5 & candidate6 & candidate7 & candidate8 & candidate9 & candidate10 & candidate11 & candidate12 & candidate13
-
     '''
+
     # for circular areas
     areas = circular_areas
     
@@ -384,12 +394,12 @@ def main():
     candidate12 = create_candidate('globally', (115, 120), -805, 0.1, areas[11])
     candidate13 = create_candidate('eventually', (120, t_end), -875, 0.1, areas[12])
     cbf = bounds_candidate & candidate1 & candidate2 & candidate3 & candidate4 & candidate5 & candidate6 & candidate7 & candidate8 & candidate9 & candidate10 & candidate11 & candidate12 & candidate13
-    '''
 
     t = 0
     saved_cbfs = np.array([])
     while t < t_end:
         control_input = calculate_control_input(state, t, alpha, cbf)
+        print(control_input.T, t)
         state = state + time_delta * control_input
         saved_states = np.append(saved_states, state.T, 0)
         saved_cbfs = np.append(saved_cbfs, cbf(state, t))
