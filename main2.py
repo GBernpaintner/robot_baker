@@ -297,7 +297,7 @@ def plot_path(states, areas):
             plt.gcf().clear()
             plot_areas(areas)
             plt.axis('square')
-            # TODO: don't hardcode these values
+            # TODO: don't hardcode these values, or do
             plt.axis([-20, 20, -20, 20])
             plt.xlabel('position x')
             plt.ylabel('position y')
