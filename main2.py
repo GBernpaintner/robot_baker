@@ -274,6 +274,10 @@ def calculate_control_input(x, t, alpha, cbf):
 
 
 def plot_areas(areas):
+    i = 1
+    for area in areas[1:]:
+        plt.text(*area.center, i, fontsize=22, ha="center", va="center", color='red')
+        i += 1
     for area in areas:
         if isinstance(area, Circle):
             plt.gca().add_artist(plt.Circle(area.center, area.radius, fill=None))
@@ -291,7 +295,7 @@ def plot_path(states, areas):
     plt.ylabel('position y')
 
     # this shows the path as an animation (although it is quite slow)
-    for i in range(len(states)):
+    """for i in range(len(states)):
         states_per_cycle = 1
         if i % states_per_cycle == 0 or i+1 == len(states):
             plt.gcf().clear()
@@ -301,18 +305,20 @@ def plot_path(states, areas):
             plt.axis([-20, 20, -20, 20])
             plt.xlabel('position x')
             plt.ylabel('position y')
-            plt.scatter(states[i+1, 0], states[i+1, 1])
-            plt.pause(0.01 * states_per_cycle)
+            plt.scatter(states[i, 0], states[i, 1])
+            #plt.scatter(states[i+1, 0], states[i+1, 1])
+            plt.pause(0.01 * states_per_cycle)"""
 
     # this plots the complete path:
-    # plt.scatter(states[:, 0], states[:, 1], c=range(len(states)), cmap=plt.cm.get_cmap('winter'))
+    plt.scatter(states[:, 0], states[:, 1], c=range(len(states)), cmap=plt.cm.get_cmap('winter'))
 
 
 def plot_cbf(t_end, time_delta, saved_cbfs):
     plt.figure()
+    plt.locator_params(axis='x', nbins=30)
     plt.plot(np.arange(0, t_end + time_delta, time_delta)[:len(saved_cbfs)], saved_cbfs)
     plt.xlabel('time [s]')
-    plt.ylabel('CBF')
+    plt.ylabel('CBF b(x,t)')
 
 
 def main():
@@ -344,12 +350,11 @@ def main():
         Circle((-2.5, 17.5), 2.5),   #  4 - Flour
         Circle((2.5, 17.5), 2.5),    #  5 - Baking Powder
         Circle((7.5, 17.5), 2.5),    #  6 - Chocolate
-        Circle((-17, 3), 3),         #  7 - Water
-        Circle((-17, 3), 3),         #  8 - Milk
-        Circle((-12, -16), 4),       #  9 - Blenders
-        Circle((16, 16), 4),         # 10 - Ovens
-        Circle((17, -17), 3),        # 11 - Delivery Point
-        Circle((0, -17), 3),         # 12 - Starting/Ending Point
+        Circle((-17, 3), 3),         #  7 - Water/Milk
+        Circle((-12, -16), 4),       #  8 - Mixer
+        Circle((16, 16), 4),         #  9 - Ovens
+        Circle((17, -17), 3),        # 10 - Delivery Point
+        Circle((0, -17), 3),         # 11 - Ending Point
     ]
 
     alpha = 1
@@ -361,18 +366,18 @@ def main():
 
     bounds_candidate = create_candidate('globally', (0, t_end), 0, 0.1, areas[0], always_active=True)
     candidate1 = create_candidate('globally', (5, 10), -25, 0.1, areas[1])
-    candidate2 = create_candidate('globally', (15, 20), -65, 0.1, areas[9])
+    candidate2 = create_candidate('globally', (15, 20), -65, 0.1, areas[8])
     candidate3 = create_candidate('globally', (25, 30), -200, 0.1, areas[3])
-    candidate4 = create_candidate('globally', (35, 40), -280, 0.1, areas[9])
+    candidate4 = create_candidate('globally', (35, 40), -280, 0.1, areas[8])
     candidate5 = create_candidate('globally', (45, 50), -360, 0.1, areas[2])
-    candidate6 = create_candidate('globally', (55, 60), -440, 0.1, areas[9])
+    candidate6 = create_candidate('globally', (55, 60), -440, 0.1, areas[8])
     candidate7 = create_candidate('globally', (65, 70), -390, 0.1, areas[6])
-    candidate8 = create_candidate('globally', (75, 80), -450, 0.1, areas[9])
+    candidate8 = create_candidate('globally', (75, 80), -450, 0.1, areas[8])
     candidate9 = create_candidate('globally', (85, 90), -510, 0.1, areas[4])
-    candidate10 = create_candidate('globally', (95, 100), -570, 0.1, areas[9])
-    candidate11 = create_candidate('globally', (105, 110), -630, 0.1, areas[10])
-    candidate12 = create_candidate('globally', (115, 120), -690, 0.1, areas[11])
-    candidate13 = create_candidate('eventually', (120, t_end), -875, 0.1, areas[12])
+    candidate10 = create_candidate('globally', (95, 100), -570, 0.1, areas[8])
+    candidate11 = create_candidate('globally', (105, 110), -630, 0.1, areas[9])
+    candidate12 = create_candidate('globally', (115, 120), -690, 0.1, areas[10])
+    candidate13 = create_candidate('eventually', (120, t_end), -875, 0.1, areas[11])
     cbf = bounds_candidate & candidate1 & candidate2 & candidate3 & candidate4 & candidate5 & candidate6 & candidate7 & candidate8 & candidate9 & candidate10 & candidate11 & candidate12 & candidate13
     '''
 
@@ -381,18 +386,18 @@ def main():
     
     bounds_candidate = create_candidate('globally', (0, t_end), 0, 0.1, areas[0], always_active=True)
     candidate1 = create_candidate('globally', (5, 10), -35, 0.1, areas[1])
-    candidate2 = create_candidate('globally', (15, 20), -105, 0.1, areas[9])
+    candidate2 = create_candidate('globally', (15, 20), -105, 0.1, areas[8])
     candidate3 = create_candidate('globally', (25, 30), -175, 0.1, areas[3])
-    candidate4 = create_candidate('globally', (35, 40), -245, 0.1, areas[9])
+    candidate4 = create_candidate('globally', (35, 40), -245, 0.1, areas[8])
     candidate5 = create_candidate('globally', (45, 50), -315, 0.1, areas[2])
-    candidate6 = create_candidate('globally', (55, 60), -385, 0.1, areas[9])
+    candidate6 = create_candidate('globally', (55, 60), -385, 0.1, areas[8])
     candidate7 = create_candidate('globally', (65, 70), -455, 0.1, areas[6])
-    candidate8 = create_candidate('globally', (75, 80), -525, 0.1, areas[9])
+    candidate8 = create_candidate('globally', (75, 80), -525, 0.1, areas[8])
     candidate9 = create_candidate('globally', (85, 90), -595, 0.1, areas[4])
-    candidate10 = create_candidate('globally', (95, 100), -665, 0.1, areas[9])
-    candidate11 = create_candidate('globally', (105, 110), -755, 0.1, areas[10])
-    candidate12 = create_candidate('globally', (115, 120), -805, 0.1, areas[11])
-    candidate13 = create_candidate('eventually', (120, t_end), -875, 0.1, areas[12])
+    candidate10 = create_candidate('globally', (95, 100), -665, 0.1, areas[8])
+    candidate11 = create_candidate('globally', (105, 110), -755, 0.1, areas[9])
+    candidate12 = create_candidate('globally', (115, 120), -805, 0.1, areas[10])
+    candidate13 = create_candidate('eventually', (120, t_end), -875, 0.1, areas[11])
     cbf = bounds_candidate & candidate1 & candidate2 & candidate3 & candidate4 & candidate5 & candidate6 & candidate7 & candidate8 & candidate9 & candidate10 & candidate11 & candidate12 & candidate13
 
     t = 0
@@ -406,7 +411,8 @@ def main():
         t += time_delta
 
     plot_cbf(t_end, time_delta, saved_cbfs)
-
+    #plt.axhline(y=0, color='orange', linestyle='dashed')
+    plt.xlim([0, 125])
     plot_path(saved_states, areas)
     plt.show()
 
